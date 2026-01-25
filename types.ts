@@ -1,20 +1,21 @@
 
 export enum TransactionSource {
-  BANK = 'BANK',       
-  LEDGER = 'LEDGER'    
+  BANK = 'BANK',
+  LEDGER = 'LEDGER'
 }
 
 export enum TransactionStatus {
-  PENDING = 'PENDING',     
-  MATCHED = 'MATCHED',     
-  DISCREPANCY = 'DISCREPANCY' 
+  PENDING = 'PENDING',
+  MATCHED = 'MATCHED',
+  DISCREPANCY = 'DISCREPANCY'
 }
 
 
 export enum UserTier {
   FREE = 'FREE',
   PRO = 'PRO',
-  ENTERPRISE = 'ENTERPRISE'
+  ENTERPRISE = 'ENTERPRISE',
+  LIFETIME = 'LIFETIME'  // VIP users with unlimited access
 }
 
 export interface UserProfile {
@@ -28,13 +29,13 @@ export interface UserProfile {
 
 export interface Transaction {
   id: string;
-  batchId: string; 
-  date: string; 
+  batchId: string;
+  date: string;
   description: string;
   amount: number;
   source: TransactionSource;
   status: TransactionStatus;
-  matchedWithId?: string; 
+  matchedWithId?: string;
   notes?: string;
   isEdited?: boolean;
 }
@@ -45,12 +46,12 @@ export interface ImportBatch {
   source: TransactionSource;
   timestamp: number;
   count: number;
-  expectedFinalBalance?: number; 
+  expectedFinalBalance?: number;
   actualFinalBalance?: number;
 }
 
 export interface AccountSummary {
-  initialBalance: number; 
+  initialBalance: number;
   totalCredits: number;
   totalDebits: number;
   finalBalance: number;
