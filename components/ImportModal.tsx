@@ -1,8 +1,13 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Loader2, Upload, FileSpreadsheet, CreditCard, AlertCircle, Mail, Sparkles, FileText, Camera, RefreshCw, ShieldCheck } from 'lucide-react';
 import { parseBankStatementDocument } from '../services/geminiService';
-import { Transaction, TransactionSource, AccountSummary, ImportBatch } from '../types';
+import { Transaction, TransactionSource, AccountSummary, ImportBatch, UserTier } from '../types';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
 
 interface Props {
   isOpen: boolean;
@@ -10,32 +15,120 @@ interface Props {
   onImport: (transactions: Partial<Transaction>[], summary: AccountSummary | null, filename: string, expectedBalance: number) => void;
   activeBatches: ImportBatch[];
   onDeleteBatch: (batchId: string) => void;
+  userTier: UserTier;
+  creditsRemaining: number;
+  userId: string | null;
 }
 
-export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, activeBatches, onDeleteBatch }) => {
+export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, activeBatches, onDeleteBatch, userTier, creditsRemaining, userId }) => {
   const [activeMethod, setActiveMethod] = useState<'text' | 'file' | 'email' | 'camera'>('file');
   const [targetSource, setTargetSource] = useState<TransactionSource>(TransactionSource.BANK);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [preCheckInfo, setPreCheckInfo] = useState<{ pageCount: number, fileName: string } | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [pendingFile, setPendingFile] = useState<{ base64: string, type: string, name: string } | null>(null);
 
-  // Limpieza total al cerrar o cambiar
+  // Cleanup on close
   useEffect(() => {
     if (!isOpen || activeMethod !== 'camera') {
       stopCamera();
     }
   }, [activeMethod, isOpen]);
 
+  const countPDFPages = async (file: File): Promise<number> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      return pdf.numPages;
+    } catch (err) {
+      console.error('Error counting PDF pages:', err);
+      throw new Error('No se pudo leer el PDF');
+    }
+  };
+
+  const handleFileSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    setPreCheckInfo(null);
+    setPendingFile(null);
+
+    try {
+      // Count pages if PDF
+      let pageCount = 1;
+      if (file.type === 'application/pdf') {
+        pageCount = await countPDFPages(file);
+      }
+
+      // Store file data for later processing
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      setPendingFile({ base64: base64Data, type: file.type, name: file.name });
+      setPreCheckInfo({ pageCount, fileName: file.name });
+
+      // Check credit limits
+      if (pageCount > creditsRemaining) {
+        setError(`Este archivo tiene ${pageCount} páginas y necesitas ${pageCount} créditos. Solo tienes ${creditsRemaining} disponibles. Actualiza tu plan para continuar.`);
+        return;
+      }
+
+    } catch (e: any) {
+      setError(e.message || "Error al analizar archivo");
+    }
+  };
+
+  const processFile = async () => {
+    if (!pendingFile || !preCheckInfo) return;
+
+    setIsProcessing(true);
+    setError(null);
+    try {
+      // Call deduct_credits RPC if user is authenticated
+      if (userId) {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(
+          import.meta.env.VITE_SUPABASE_URL!,
+          import.meta.env.VITE_SUPABASE_ANON_KEY!
+        );
+
+        const { data, error: rpcError } = await supabase.rpc('deduct_credits', { page_count: preCheckInfo.pageCount });
+
+        if (rpcError) {
+          setError(`Error al procesar créditos: ${rpcError.message}`);
+          return;
+        }
+      }
+
+      // Process the file with AI
+      const result = await parseBankStatementDocument(pendingFile.base64, pendingFile.type, targetSource);
+      onImport(result.transactions, result.summary, pendingFile.name, result.summary?.finalBalance || 0);
+
+      // Clean up
+      setPreCheckInfo(null);
+      setPendingFile(null);
+    } catch (e: any) {
+      setError(e.message || "Error al procesar documento");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const startCamera = async () => {
     setError(null);
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
       });
       setStream(mediaStream);
       setIsCameraActive(true);
@@ -58,44 +151,28 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
 
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
-    
+    if (creditsRemaining < 1) {
+      setError(`No tienes créditos suficientes. Actualiza tu plan.`);
+      return;
+    }
+
     setIsProcessing(true);
     const canvas = canvasRef.current;
     const video = videoRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     const ctx = canvas.getContext('2d');
     ctx?.drawImage(video, 0, 0);
-    
+
     const base64Data = canvas.toDataURL('image/jpeg');
-    
+
     try {
       const result = await parseBankStatementDocument(base64Data, 'image/jpeg', targetSource);
       onImport(result.transactions, result.summary, `Escaneo_${new Date().getTime()}.jpg`, result.summary?.finalBalance || 0);
       stopCamera();
     } catch (e: any) {
       setError(e.message || "Error al procesar la imagen");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setIsProcessing(true);
-    setError(null);
-    try {
-      const reader = new FileReader();
-      const base64Data = await new Promise<string>((resolve) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      const result = await parseBankStatementDocument(base64Data, file.type, targetSource);
-      onImport(result.transactions, result.summary, file.name, result.summary?.finalBalance || 0);
-    } catch (e: any) {
-      setError(e.message || "Error al leer archivo");
     } finally {
       setIsProcessing(false);
     }
@@ -137,11 +214,33 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
           </div>
 
           {activeMethod === 'file' && (
-            <div onClick={() => !isProcessing && fileInputRef.current?.click()} className="h-44 border-2 border-dashed border-slate-200 bg-slate-50 rounded-[2rem] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all group">
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".pdf,.csv,.xlsx,image/*" />
-              {isProcessing ? <Loader2 className="animate-spin text-indigo-600" size={32} /> : <div className="p-4 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform"><FileText size={24} className="text-indigo-400" /></div>}
-              <p className="text-xs font-bold text-slate-400">Clic para subir PDF o Imagen</p>
-            </div>
+            <>
+              <div onClick={() => !isProcessing && fileInputRef.current?.click()} className="h-44 border-2 border-dashed border-slate-200 bg-slate-50 rounded-[2rem] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-all group">
+                <input type="file" ref={fileInputRef} onChange={handleFileSelection} className="hidden" accept=".pdf,.csv,.xlsx,image/*" />
+                {isProcessing ? <Loader2 className="animate-spin text-indigo-600" size={32} /> : <div className="p-4 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform"><FileText size={24} className="text-indigo-400" /></div>}
+                <p className="text-xs font-bold text-slate-400">Click para subir PDF o Imagen</p>
+              </div>
+
+              {preCheckInfo && !error && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 space-y-4 animate-in slide-in-from-top-2">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <h4 className="font-black text-slate-900">Confirmación de Procesamiento</h4>
+                      <p className="text-sm text-slate-600"><strong>{preCheckInfo.fileName}</strong></p>
+                      <p className="text-xs font-bold text-indigo-700">📄 {preCheckInfo.pageCount} página{preCheckInfo.pageCount > 1 ? 's' : ''} detectada{preCheckInfo.pageCount > 1 ? 's' : ''}</p>
+                      <p className="text-xs font-bold text-slate-600">💳 Consumirá {preCheckInfo.pageCount} crédito{preCheckInfo.pageCount > 1 ? 's' : ''} • Tienes {creditsRemaining} disponibles</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={processFile}
+                    disabled={isProcessing}
+                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isProcessing ? <><Loader2 className="animate-spin" size={18} /> Procesando...</> : 'Procesar Archivo'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {activeMethod === 'camera' && (
@@ -155,7 +254,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
                     <h4 className="text-white font-black">Escáner de Documentos</h4>
                     <p className="text-slate-400 text-xs px-4">Usa la cámara para digitalizar comprobantes físicos en tiempo real.</p>
                   </div>
-                  <button 
+                  <button
                     onClick={startCamera}
                     className="bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl hover:bg-indigo-700 active:scale-95 transition-all"
                   >
@@ -169,14 +268,14 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
                 <>
                   <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
                   <canvas ref={canvasRef} className="hidden" />
-                  
+
                   <div className="absolute inset-0 border-2 border-dashed border-white/20 pointer-events-none flex items-center justify-center">
                     <div className="w-56 h-40 border-2 border-indigo-500/40 rounded-2xl shadow-[0_0_50px_rgba(79,70,229,0.2)]"></div>
                   </div>
 
                   <div className="absolute bottom-6 inset-x-0 flex justify-center gap-4">
-                    <button 
-                      onClick={capturePhoto} 
+                    <button
+                      onClick={capturePhoto}
                       disabled={isProcessing}
                       className="bg-indigo-600 text-white p-5 rounded-full shadow-2xl hover:bg-indigo-700 transition-all active:scale-90 disabled:opacity-50"
                     >
@@ -188,7 +287,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
                   </div>
                 </>
               )}
-              
+
               {isProcessing && (
                 <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center text-white p-6 text-center z-20">
                   <Loader2 className="animate-spin mb-4 text-indigo-400" size={40} />
@@ -200,19 +299,19 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
 
           {activeMethod === 'email' && (
             <div className="text-center p-8 space-y-6">
-               <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto text-indigo-600"><Mail size={32} /></div>
-               <div className="space-y-2">
-                 <h4 className="font-black text-slate-900">Sincronización Inteligente</h4>
-                 <p className="text-xs text-slate-400 font-medium">Escanea automáticamente tus correos bancarios.</p>
-               </div>
-               <button onClick={handleSyncEmail} disabled={isProcessing} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
-                 {isProcessing ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
-                 {isProcessing ? 'Sincronizando...' : 'Conectar Gmail'}
-               </button>
+              <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto text-indigo-600"><Mail size={32} /></div>
+              <div className="space-y-2">
+                <h4 className="font-black text-slate-900">Sincronización Inteligente</h4>
+                <p className="text-xs text-slate-400 font-medium">Escanea automáticamente tus correos bancarios.</p>
+              </div>
+              <button onClick={handleSyncEmail} disabled={isProcessing} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
+                {isProcessing ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                {isProcessing ? 'Sincronizando...' : 'Conectar Gmail'}
+              </button>
             </div>
           )}
 
-          {error && <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-[11px] font-bold text-red-500 flex items-center gap-2 animate-in slide-in-from-top-2"><AlertCircle size={14}/> {error}</div>}
+          {error && <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-[11px] font-bold text-red-500 flex items-center gap-2 animate-in slide-in-from-top-2"><AlertCircle size={14} /> {error}</div>}
         </div>
       </div>
     </div>

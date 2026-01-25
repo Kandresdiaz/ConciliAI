@@ -10,9 +10,20 @@ export enum TransactionStatus {
   DISCREPANCY = 'DISCREPANCY' 
 }
 
+
 export enum UserTier {
   FREE = 'FREE',
-  PRO = 'PRO'
+  PRO = 'PRO',
+  ENTERPRISE = 'ENTERPRISE'
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  tier: UserTier;
+  credits_remaining: number;
+  total_processed_pages: number;
+  reconciliations_count: number;
 }
 
 export interface Transaction {

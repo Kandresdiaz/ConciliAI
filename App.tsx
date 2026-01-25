@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Transaction, 
-  TransactionSource, 
-  TransactionStatus, 
+import {
+  Transaction,
+  TransactionSource,
+  TransactionStatus,
   AccountSummary,
   ImportBatch,
   UserTier
@@ -14,17 +14,18 @@ import { ImportModal } from './components/ImportModal';
 import { LoginScreen } from './components/LoginScreen';
 import { LandingPage } from './components/LandingPage';
 import { SecurityAgreementModal } from './components/SecurityAgreementModal';
-import { 
-  Sparkles, PlusCircle, LayoutDashboard, ArrowRightLeft, 
-  FileCheck, Download, LogOut, Lock, ShieldCheck, Zap, 
+import { PricingModal } from './components/PricingModal';
+import {
+  Sparkles, PlusCircle, LayoutDashboard, ArrowRightLeft,
+  FileCheck, Download, LogOut, Lock, ShieldCheck, Zap,
   Linkedin, Send, Menu, X, MessageSquare, History,
   CheckCircle2
 } from 'lucide-react';
 
 const formatCOP = (amount: number) => {
-  return amount.toLocaleString('es-CO', { 
-    style: 'currency', currency: 'COP', 
-    minimumFractionDigits: 2 
+  return amount.toLocaleString('es-CO', {
+    style: 'currency', currency: 'COP',
+    minimumFractionDigits: 2
   });
 };
 
@@ -34,22 +35,23 @@ const App: React.FC = () => {
   const [isSecurityAccepted, setIsSecurityAccepted] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const [user, setUser] = useState<any>(null);
   const [tier, setTier] = useState<UserTier>(UserTier.FREE);
   const [reconciliationsCount, setReconciliationsCount] = useState(0);
-  
+  const [creditsRemaining, setCreditsRemaining] = useState(10);
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'reconcile' | 'report' | 'history'>('dashboard');
-  
+
   const [showPricing, setShowPricing] = useState(false);
   const [initialBankBalance, setInitialBankBalance] = useState(0);
   const [initialLedgerBalance, setInitialLedgerBalance] = useState(0);
   const [companyName, setCompanyName] = useState('EMPRESA S.A.S');
 
   const [isImportModalOpen, setImportModalOpen] = useState(false);
-  const [toast, setToast] = useState<{msg: string, type: string} | null>(null);
+  const [toast, setToast] = useState<{ msg: string, type: string } | null>(null);
 
   // PROTECCIÓN ANTICOPY GLOBAL
   useEffect(() => {
@@ -95,6 +97,7 @@ const App: React.FC = () => {
     if (profile) {
       setTier(profile.tier as UserTier);
       setReconciliationsCount(profile.reconciliations_count || 0);
+      setCreditsRemaining(profile.credits_remaining || 10);
     }
   };
 
@@ -127,10 +130,10 @@ const App: React.FC = () => {
           { id: 'report', label: 'Acta Final', icon: FileCheck },
           { id: 'history', label: 'Historial', icon: History, pro: true }
         ].map(item => (
-          <button 
-            key={item.id} 
-            onClick={() => { 
-              if (item.pro && tier !== UserTier.PRO) setShowPricing(true); 
+          <button
+            key={item.id}
+            onClick={() => {
+              if (item.pro && tier !== UserTier.PRO) setShowPricing(true);
               else { setActiveTab(item.id as any); setIsMobileMenuOpen(false); }
             }}
             className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${activeTab === item.id ? 'bg-indigo-600 text-white shadow-xl font-bold' : 'text-slate-400 hover:bg-slate-50'}`}
@@ -159,8 +162,8 @@ const App: React.FC = () => {
       <div className="pt-6 border-t mt-auto space-y-4">
         <div className="p-4 bg-slate-900 text-white rounded-2xl">
           <div className="flex justify-between items-center mb-1">
-             <span className="text-[9px] font-black uppercase text-indigo-400 tracking-widest">{tier} PLAN</span>
-             {tier === UserTier.FREE && <span className="text-[9px] font-bold">{reconciliationsCount}/5</span>}
+            <span className="text-[9px] font-black uppercase text-indigo-400 tracking-widest">{tier} PLAN</span>
+            {tier === UserTier.FREE && <span className="text-[9px] font-bold">{reconciliationsCount}/5</span>}
           </div>
           <p className="text-xs font-bold truncate">{user?.email || 'Demo User'}</p>
         </div>
@@ -179,7 +182,7 @@ const App: React.FC = () => {
     <div className={`flex flex-col lg:flex-row h-screen bg-slate-50 overflow-hidden ${tier === UserTier.FREE ? 'is-free-user' : ''}`}>
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileMenuOpen(false)}>
-           <div className="w-72 h-full bg-white animate-in slide-in-from-left duration-200" onClick={e => e.stopPropagation()}><SidebarContent /></div>
+          <div className="w-72 h-full bg-white animate-in slide-in-from-left duration-200" onClick={e => e.stopPropagation()}><SidebarContent /></div>
         </div>
       )}
 
@@ -199,32 +202,32 @@ const App: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-4 lg:p-10 space-y-8 no-copy">
           {activeTab === 'dashboard' && (
             <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="bg-white p-8 lg:p-16 rounded-[3rem] shadow-2xl border border-slate-100 space-y-12">
-                  <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-                     <div className="w-full md:w-auto text-center md:text-left">
-                        <input value={companyName} onChange={e => setCompanyName(e.target.value)} className="text-2xl lg:text-4xl font-black text-slate-950 border-b-2 border-transparent focus:border-indigo-100 outline-none w-full bg-transparent" placeholder="Nombre de la Empresa" />
-                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-2">Panel de Auditoría Activo</p>
-                     </div>
-                     <div className="bg-slate-950 text-white px-10 py-8 rounded-[2.5rem] text-center shadow-2xl w-full md:w-auto">
-                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Diferencia Neta</span>
-                        <p className={`text-3xl lg:text-5xl font-black mt-1 ${Math.abs(stats.diff) > 0.1 ? 'text-red-400' : 'text-emerald-400'}`}>{formatCOP(stats.diff)}</p>
-                     </div>
+              <div className="bg-white p-8 lg:p-16 rounded-[3rem] shadow-2xl border border-slate-100 space-y-12">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                  <div className="w-full md:w-auto text-center md:text-left">
+                    <input value={companyName} onChange={e => setCompanyName(e.target.value)} className="text-2xl lg:text-4xl font-black text-slate-950 border-b-2 border-transparent focus:border-indigo-100 outline-none w-full bg-transparent" placeholder="Nombre de la Empresa" />
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-2">Panel de Auditoría Activo</p>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-24 relative">
-                    <div className="hidden md:block absolute left-1/2 inset-y-0 w-px bg-slate-100" />
-                    <div className="space-y-6">
-                      <h3 className="flex items-center gap-3 font-black uppercase text-[10px] text-slate-400 tracking-widest"><ShieldCheck size={16}/> Bancos</h3>
-                      <CalcRow label="Saldo Anterior" value={initialBankBalance} onChange={setInitialBankBalance} isInput />
-                      <CalcRow label="Saldo Final" value={stats.finalBank} isFinal />
-                    </div>
-                    <div className="space-y-6">
-                      <h3 className="flex items-center gap-3 font-black uppercase text-[10px] text-slate-400 tracking-widest"><FileCheck size={16}/> Libros</h3>
-                      <CalcRow label="Saldo Anterior" value={initialLedgerBalance} onChange={setInitialLedgerBalance} isInput />
-                      <CalcRow label="Saldo Final" value={stats.finalLedger} isFinal />
-                    </div>
+                  <div className="bg-slate-950 text-white px-10 py-8 rounded-[2.5rem] text-center shadow-2xl w-full md:w-auto">
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Diferencia Neta</span>
+                    <p className={`text-3xl lg:text-5xl font-black mt-1 ${Math.abs(stats.diff) > 0.1 ? 'text-red-400' : 'text-emerald-400'}`}>{formatCOP(stats.diff)}</p>
                   </div>
-               </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-24 relative">
+                  <div className="hidden md:block absolute left-1/2 inset-y-0 w-px bg-slate-100" />
+                  <div className="space-y-6">
+                    <h3 className="flex items-center gap-3 font-black uppercase text-[10px] text-slate-400 tracking-widest"><ShieldCheck size={16} /> Bancos</h3>
+                    <CalcRow label="Saldo Anterior" value={initialBankBalance} onChange={setInitialBankBalance} isInput />
+                    <CalcRow label="Saldo Final" value={stats.finalBank} isFinal />
+                  </div>
+                  <div className="space-y-6">
+                    <h3 className="flex items-center gap-3 font-black uppercase text-[10px] text-slate-400 tracking-widest"><FileCheck size={16} /> Libros</h3>
+                    <CalcRow label="Saldo Anterior" value={initialLedgerBalance} onChange={setInitialLedgerBalance} isInput />
+                    <CalcRow label="Saldo Final" value={stats.finalLedger} isFinal />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -236,86 +239,65 @@ const App: React.FC = () => {
           )}
 
           {activeTab === 'report' && (
-             <div className="max-w-4xl mx-auto pb-24">
-                <div className="flex flex-col sm:flex-row justify-center mb-10 gap-4 print:hidden px-4">
-                   <button onClick={() => setShowPricing(true)} className="flex-1 bg-indigo-600 text-white px-8 py-5 rounded-3xl font-black text-sm flex items-center justify-center gap-3 shadow-xl active:scale-95">
-                     <Lock size={18} /> Guardar (PRO)
-                   </button>
-                   <button onClick={() => window.print()} className="flex-1 bg-slate-950 text-white px-8 py-5 rounded-3xl font-black text-sm flex items-center justify-center gap-3 shadow-xl active:scale-95">
-                      <Download size={18} /> Imprimir Acta
-                   </button>
+            <div className="max-w-4xl mx-auto pb-24">
+              <div className="flex flex-col sm:flex-row justify-center mb-10 gap-4 print:hidden px-4">
+                <button onClick={() => setShowPricing(true)} className="flex-1 bg-indigo-600 text-white px-8 py-5 rounded-3xl font-black text-sm flex items-center justify-center gap-3 shadow-xl active:scale-95">
+                  <Lock size={18} /> Guardar (PRO)
+                </button>
+                <button onClick={() => window.print()} className="flex-1 bg-slate-950 text-white px-8 py-5 rounded-3xl font-black text-sm flex items-center justify-center gap-3 shadow-xl active:scale-95">
+                  <Download size={18} /> Imprimir Acta
+                </button>
+              </div>
+
+              <div id="report-to-export" className="bg-white p-12 lg:p-24 rounded-[4rem] border shadow-2xl relative space-y-16 overflow-hidden">
+                {tier === UserTier.FREE && (
+                  <div className="watermark-free">
+                    {Array(20).fill(0).map((_, i) => (
+                      <div key={i} className="watermark-text">BORRADOR NO CERTIFICADO - CONCILIAI FREE</div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-between items-start border-b pb-12">
+                  <div><h2 className="text-3xl lg:text-5xl font-black tracking-tight">{companyName}</h2><p className="text-indigo-600 font-black text-[10px] uppercase tracking-widest mt-3">Acta Oficial de Conciliación Bancaria</p></div>
                 </div>
-                
-                <div id="report-to-export" className="bg-white p-12 lg:p-24 rounded-[4rem] border shadow-2xl relative space-y-16 overflow-hidden">
-                   {tier === UserTier.FREE && (
-                     <div className="watermark-free">
-                        {Array(20).fill(0).map((_, i) => (
-                          <div key={i} className="watermark-text">BORRADOR NO CERTIFICADO - CONCILIAI FREE</div>
-                        ))}
-                     </div>
-                   )}
-                   <div className="flex justify-between items-start border-b pb-12">
-                      <div><h2 className="text-3xl lg:text-5xl font-black tracking-tight">{companyName}</h2><p className="text-indigo-600 font-black text-[10px] uppercase tracking-widest mt-3">Acta Oficial de Conciliación Bancaria</p></div>
-                   </div>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
-                      <div><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Resumen Banco</h4><p className="text-3xl font-black">{formatCOP(stats.finalBank)}</p></div>
-                      <div><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Resumen Libros</h4><p className="text-3xl font-black">{formatCOP(stats.finalLedger)}</p></div>
-                   </div>
-                   <div className="pt-32 grid grid-cols-2 gap-32 relative">
-                      <div className="border-t-2 border-slate-900 pt-6"><p className="text-sm font-black uppercase">Firma Auditor Responsable</p></div>
-                      <div className="border-t-2 border-slate-200 pt-6"><p className="text-sm font-black uppercase text-slate-300">Certificación Digital</p></div>
-                   </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
+                  <div><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Resumen Banco</h4><p className="text-3xl font-black">{formatCOP(stats.finalBank)}</p></div>
+                  <div><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Resumen Libros</h4><p className="text-3xl font-black">{formatCOP(stats.finalLedger)}</p></div>
                 </div>
-             </div>
+                <div className="pt-32 grid grid-cols-2 gap-32 relative">
+                  <div className="border-t-2 border-slate-900 pt-6"><p className="text-sm font-black uppercase">Firma Auditor Responsable</p></div>
+                  <div className="border-t-2 border-slate-200 pt-6"><p className="text-sm font-black uppercase text-slate-300">Certificación Digital</p></div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </main>
 
-      {showPricing && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto">
-           <div className="bg-white rounded-[3.5rem] shadow-2xl w-full max-w-5xl overflow-hidden grid grid-cols-1 md:grid-cols-2 animate-in zoom-in duration-300">
-              <div className="p-12 lg:p-16 bg-slate-50 border-r flex flex-col justify-center">
-                 <h3 className="text-3xl font-black mb-8">Plan Semilla <span className="text-slate-400 ml-2">$0</span></h3>
-                 <ul className="space-y-4 mb-10 text-sm font-bold text-slate-600">
-                    <li className="flex gap-4"><CheckCircle2 size={20} className="text-emerald-500" /> 5 Conciliaciones mensuales</li>
-                    <li className="flex gap-4 opacity-30"><X size={20} /> Sin marcas de agua en actas</li>
-                 </ul>
-                 <button disabled className="w-full py-5 bg-slate-200 text-slate-400 rounded-2xl font-black uppercase text-xs tracking-widest">Tu Plan Actual</button>
-              </div>
-              <div className="p-12 lg:p-16 relative flex flex-col justify-center">
-                 <button onClick={() => setShowPricing(false)} className="absolute top-10 right-10 text-slate-300 hover:text-slate-900"><X size={28}/></button>
-                 <h3 className="text-4xl font-black mb-8">Auditor Pro <span className="text-indigo-600 ml-2">$25</span></h3>
-                 <ul className="space-y-4 mb-10 text-sm font-bold text-slate-600">
-                    <li className="flex gap-4"><Zap size={20} className="text-indigo-600" /> Conciliaciones ILIMITADAS</li>
-                    <li className="flex gap-4"><Zap size={20} className="text-indigo-600" /> Historial persistente en la nube</li>
-                    <li className="flex gap-4"><Zap size={20} className="text-indigo-600" /> Sello de certificación digital</li>
-                 </ul>
-                 <button onClick={() => window.open('https://stripe.com/pay/conciliai_pro', '_blank')} className="w-full py-6 bg-indigo-600 text-white rounded-3xl font-black text-xl shadow-2xl hover:bg-indigo-700 transition-all active:scale-95">
-                   Suscribirse Pro <Zap size={20} fill="currentColor" />
-                 </button>
-              </div>
-           </div>
-        </div>
-      )}
+
+      <PricingModal isOpen={showPricing} onClose={() => setShowPricing(false)} currentTier={tier} />
 
       {toast && <div className="fixed bottom-6 right-6 bg-slate-950 text-white px-8 py-5 rounded-3xl shadow-2xl font-black z-[1000] animate-in slide-in-from-bottom duration-300">{toast.msg}</div>}
-      
+
       {/* MODAL RENDERIZADO CONDICIONALMENTE: Solo existe si isImportModalOpen es true */}
       {isImportModalOpen && (
-        <ImportModal 
-          isOpen={isImportModalOpen} 
-          onClose={() => setImportModalOpen(false)} 
-          onImport={(txs, sum, file, exp) => { 
-            setTransactions(prev => [...prev, ...txs.map(t => ({...t, id: Math.random().toString(36).substring(7), status: TransactionStatus.PENDING} as Transaction))]); 
-            setInitialBankBalance(sum?.initialBalance || initialBankBalance); 
-            setImportModalOpen(false); 
-            showToast("Movimientos importados"); 
-          }} 
-          activeBatches={batches} 
-          onDeleteBatch={(id) => { 
-            setBatches(prev => prev.filter(b => b.id !== id)); 
-            setTransactions(prev => prev.filter(t => t.batchId !== id)); 
-          }} 
+        <ImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          onImport={(txs, sum, file, exp) => {
+            setTransactions(prev => [...prev, ...txs.map(t => ({ ...t, id: Math.random().toString(36).substring(7), status: TransactionStatus.PENDING } as Transaction))]);
+            setInitialBankBalance(sum?.initialBalance || initialBankBalance);
+            setImportModalOpen(false);
+            showToast("Movimientos importados");
+          }}
+          activeBatches={batches}
+          onDeleteBatch={(id) => {
+            setBatches(prev => prev.filter(b => b.id !== id));
+            setTransactions(prev => prev.filter(t => t.batchId !== id));
+          }}
+          userTier={tier}
+          creditsRemaining={creditsRemaining}
+          userId={user?.id || null}
         />
       )}
     </div>
