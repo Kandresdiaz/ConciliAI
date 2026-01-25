@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ConciliAI | Auditoría Bancaria con IA para Contadores</title>
+    <meta name="description" content="Automatiza la conciliación bancaria con IA. Extrae datos de correos y extractos en segundos. Desarrollado por Kevin Díaz para contadores modernos." />
+    <meta name="keywords" content="conciliación bancaria, contabilidad, inteligencia artificial, gemini ai, kevin diaz, auditoría financiera, colombia, fintech" />
+    
+    <!-- Open Graph / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ConciliAI: La Revolución de la Conciliación Bancaria" />
+    <meta property="og:description" content="Ahorra horas de trabajo manual. Concilia extractos bancarios usando IA de última generación." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=1000" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+        -webkit-user-select: none;
+        user-select: none;
+        overflow-x: hidden;
+      }
+      
+      .no-copy { user-select: none !important; }
+
+      @media print {
+        .is-free-user #report-to-export {
+          filter: blur(20px);
+          opacity: 0.1;
+        }
+        .print\:hidden { display: none !important; }
+      }
+
+      /* Marcas de agua para Plan Free */
+      .watermark-free {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 50;
+        opacity: 0.05;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-content: center;
+        transform: rotate(-30deg) scale(1.5);
+      }
+      .watermark-text {
+        font-size: 20px;
+        font-weight: 900;
+        margin: 40px;
+        white-space: nowrap;
+      }
+
+      /* Animaciones */
+      @keyframes slideIn {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(0); }
+      }
+      .mobile-sidebar-animate { animation: slideIn 0.3s ease-out; }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.45.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
+    "express": "https://esm.sh/express@^5.2.1",
+    "googleapis": "https://esm.sh/googleapis@^170.1.0",
+    "pg": "https://esm.sh/pg@^8.17.2",
+    "cors": "https://esm.sh/cors@^2.8.6",
+    "dotenv/": "https://esm.sh/dotenv@^17.2.3/"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

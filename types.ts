@@ -1,0 +1,65 @@
+
+export enum TransactionSource {
+  BANK = 'BANK',       
+  LEDGER = 'LEDGER'    
+}
+
+export enum TransactionStatus {
+  PENDING = 'PENDING',     
+  MATCHED = 'MATCHED',     
+  DISCREPANCY = 'DISCREPANCY' 
+}
+
+export enum UserTier {
+  FREE = 'FREE',
+  PRO = 'PRO'
+}
+
+export interface Transaction {
+  id: string;
+  batchId: string; 
+  date: string; 
+  description: string;
+  amount: number;
+  source: TransactionSource;
+  status: TransactionStatus;
+  matchedWithId?: string; 
+  notes?: string;
+  isEdited?: boolean;
+}
+
+export interface ImportBatch {
+  id: string;
+  filename: string;
+  source: TransactionSource;
+  timestamp: number;
+  count: number;
+  expectedFinalBalance?: number; 
+  actualFinalBalance?: number;
+}
+
+export interface AccountSummary {
+  initialBalance: number; 
+  totalCredits: number;
+  totalDebits: number;
+  finalBalance: number;
+}
+
+export interface ImportResult {
+  summary: AccountSummary | null;
+  transactions: Partial<Transaction>[];
+}
+
+export interface MatchSuggestion {
+  bankId: string;
+  ledgerId: string;
+  confidence: number;
+  reason: string;
+}
+
+export interface AppState {
+  activeTab: 'dashboard' | 'reconcile' | 'report' | 'history';
+  initialBankBalance: number;
+  initialLedgerBalance: number;
+  userTier: UserTier;
+}
