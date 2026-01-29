@@ -33,3 +33,23 @@ Ejecuta el nuevo archivo `database.sql` para habilitar:
 ## 🔒 Seguridad de Datos PRO
 *   **Aislamiento:** Cada fila de conciliación está protegida por políticas RLS de Postgres, asegurando que un usuario nunca pueda ver datos de otro.
 *   **Bóveda JSON:** Los detalles de las transacciones se guardan en una columna `JSONB` indexada para búsquedas ultra-rápidas en el historial.
+
+---
+
+## 🔌 Integración con Google (Producción)
+
+### Autenticación y Seguridad
+La aplicación utiliza **Supabase Auth** con el proveedor de Google para gestionar identidades de forma segura.
+- **Protocolo:** OAuth 2.0.
+- **Persistencia:** Los tokens de sesión se manejan automáticamente (JWT).
+
+### Flujo de Usuarios (Freemium)
+El sistema distingue automáticamente entre usuarios mediante Triggers de Base de Datos:
+1. **Nuevo Usuario:** Al registrarse con Google, se dispara un trigger `handle_new_user`.
+2. **Perfil Automático:** Se crea una entrada en `public.profiles` con `tier = 'FREE'`.
+3. **Restricciones:** El frontend lee este `tier` para bloquear/desbloquear funciones (ej. Historial).
+
+### Despliegue en Vercel
+Para que la autenticación funcione en producción (Vercel):
+1. Agregar la URL de producción a **Site URL** en Supabase Auth.
+2. Añadir la URL de redirección (ej. `https://tu-app.vercel.app/**`) en la lista de **Redirect URLs**.
