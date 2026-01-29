@@ -56,6 +56,29 @@ Para que la autenticación funcione en producción (Vercel):
 
 ---
 
+## ❓ Solución de Problemas Comunes (Auth)
+
+### Error: "Error de conexión: Cliente Supabase no inicializado"
+- **Causa:** Las variables de entorno no están configuradas en Vercel.
+- **Solución:** Revisa que `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` estén en *Settings > Environment Variables* de Vercel.
+
+### Error: "Redirect URL mismatch" o similar
+- **Causa:** La URL de tu sitio en Vercel no está autorizada en Supabase.
+- **Solución:**
+    1. Ve a Supabase > Authentication > URL Configuration.
+    2. En **Site URL**, pon tu dominio principal (ej. `https://conciliai.vercel.app`).
+    3. En **Redirect URLs**, añade `https://conciliai.vercel.app/**`.
+    4. **IMPORTANTE:** Si usas un dominio custom, añádelo también.
+
+### Error: Google Auth no abre o da error 400
+- **Causa:** No has habilitado Google como proveedor.
+- **Solución:**
+    1. Ve a Supabase > Authentication > Providers > Google.
+    2. Asegúrate de que esté **Enabled**.
+    3. Verifica que hayas puesto el Client ID y Secret obtenidos de Google Cloud Console.
+
+---
+
 ## 🚀 Guía de Configuración Producción (Paso a Paso)
 
 Sigue estos pasos para conectar todo en Vercel.

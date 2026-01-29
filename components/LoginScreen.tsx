@@ -4,20 +4,24 @@ import { Mail, ArrowRight, CheckCircle2, ShieldCheck, Lock } from 'lucide-react'
 import { supabase } from '../services/supabaseClient';
 
 export const LoginScreen: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
-      const { error } = await supabase!.auth.signInWithOAuth({
+      if (!supabase) throw new Error("Error de conexión: Cliente Supabase no inicializado.");
+
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin
+          redirectTo: `${window.location.origin}/`
         }
       });
       if (error) throw error;
     } catch (error: any) {
       console.error(error.message);
+      setErrorMsg(error.message || "Error al conectar con Google");
     } finally {
       setLoading(false);
     }
@@ -45,7 +49,7 @@ export const LoginScreen: React.FC = () => {
             <div className="text-center mb-4">
               <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Identifícate para gestionar tus créditos</p>
             </div>
-            
+
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
@@ -56,6 +60,13 @@ export const LoginScreen: React.FC = () => {
               {loading ? 'Conectando...' : 'Entrar con Google'}
             </button>
 
+            {errorMsg && (
+              <div className="p-4 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100 flex items-center gap-2">
+                <span className="shrink-0">⚠️</span>
+                {errorMsg}
+              </div>
+            )}
+
             <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100">
               <p className="text-[11px] text-indigo-800 font-bold leading-relaxed text-center uppercase tracking-tight">
                 Plan Semilla: 5 conciliaciones mensuales gratis
@@ -65,12 +76,12 @@ export const LoginScreen: React.FC = () => {
 
           <div className="mt-10 space-y-4">
             <div className="flex items-center gap-3 text-[11px] text-gray-500 font-medium">
-              <ShieldCheck size={16} className="text-indigo-500 shrink-0"/>
+              <ShieldCheck size={16} className="text-indigo-500 shrink-0" />
               <span>Autenticación oficial de Google</span>
             </div>
             <div className="flex items-center gap-3 text-[11px] text-gray-500 font-medium">
-               <Lock size={16} className="text-indigo-500 shrink-0"/>
-               <span>Encriptación AES-256 en base de datos</span>
+              <Lock size={16} className="text-indigo-500 shrink-0" />
+              <span>Encriptación AES-256 en base de datos</span>
             </div>
           </div>
         </div>
