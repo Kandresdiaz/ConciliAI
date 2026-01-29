@@ -77,7 +77,17 @@ Para que la autenticación funcione en producción (Vercel):
     2. Asegúrate de que esté **Enabled**.
     3. Verifica que hayas puesto el Client ID y Secret obtenidos de Google Cloud Console.
 
+### Error: "Unsupported provider: provider is not enabled"
+- **Causa:** ¡IMPORTANTE! Tienes las claves pero **no has activado** el interruptor de Google en Supabase.
+- **Solución:**
+    1. Ve a **Supabase Dashboard** > **Authentication** > **Providers**.
+    2. Busca **Google** en la lista.
+    3. Asegúrate de que el interruptor diga **"Enabled"** (en verde).
+    4. Haz clic en él y asegúrate de haber pegado el `Client ID` y `Client Secret` que obtuviste de Google Cloud.
+    5. Dale a **Save**.
+
 ---
+
 
 ## 🚀 Guía de Configuración Producción (Paso a Paso)
 
@@ -108,7 +118,26 @@ Ve a tu proyecto en Vercel > Settings > Environment Variables y agrega las sigui
 5. Dale a "Add endpoint".
 6. Copia el **Signing secret** (whsec_...) y ponlo en la variable `STRIPE_WEBHOOK_SECRET` en Vercel.
 
-### 3. Base de Datos (Supabase)
+### 3. Obtener Credenciales de Google (Paso a Paso)
+¡Esta es la parte que te faltaba! Sigue esto con calma:
+
+1.  Ve a **[Google Cloud Console](https://console.cloud.google.com/)**.
+2.  Crea un **Nuevo Proyecto** (ponle nombre "ConciliAI" o similar).
+3.  **Configurar Pantalla de Consentimiento (OAuth Consent Screen):**
+    -   Ve a *APIs & Services* > *OAuth consent screen*.
+    -   Selecciona **External** y dale a Create.
+    -   Llena los datos obligatorios (Nombre de App, emails).
+    -   Dale "Save and Continue" hasta terminar.
+4.  **Crear Credenciales:**
+    -   Ve a *APIs & Services* > *Credentials*.
+    -   Dale a **+ CREATE CREDENTIALS** > **OAuth client ID**.
+    -   **Application type:** Web application.
+    -   **Authorized redirect URIs:** Aquí debes pegar TU URL de Callback de Supabase.
+        -   👉 Tu URL es: `https://ehwsgaxqixlkijshyrot.supabase.co/auth/v1/callback`
+    -   Dale a **Create**.
+5.  ¡Listo! Copia el **Client ID** y **Client Secret** y pégalos en Supabase (donde activaste el interruptor).
+
+### 4. Base de Datos (Supabase)
 Conecta Supabase con Stripe ejecutando el script `database.sql` en el **SQL Editor** de Supabase. Esto creará:
 - Tabla `profiles` (para guardar quién es PRO).
 - Tabla `conciliations` (para guardar el historial).
