@@ -61,7 +61,7 @@ app.post('/api/sync-bank-emails', async (req, res) => {
 
     const response = await gmail.users.messages.list({
       userId: 'me',
-      q: bankQuery, 
+      q: bankQuery,
       maxResults: 10 // Procesar en lotes pequeños
     });
 
@@ -76,14 +76,14 @@ app.post('/api/sync-bank-emails', async (req, res) => {
       // C. Obtener contenido limpio del correo
       const email = await gmail.users.messages.get({ userId: 'me', id: msg.id });
       let bodyData = '';
-      
+
       // Lógica para extraer texto plano o HTML dependiendo de la estructura MIME
       if (email.data.payload.parts) {
         bodyData = email.data.payload.parts.find(p => p.mimeType === 'text/plain')?.body?.data || '';
       } else {
         bodyData = email.data.payload.body.data || '';
       }
-      
+
       if (!bodyData) continue;
       const decodedBody = Buffer.from(bodyData, 'base64').toString('utf-8');
 
@@ -93,7 +93,7 @@ app.post('/api/sync-bank-emails', async (req, res) => {
       // Fix: Create GoogleGenAI instance right before the call as per best practices
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const aiResponse = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.0-flash',
         contents: `
           Analiza este correo electrónico.
           Si contiene transacciones financieras (compras, transferencias, pagos), extraelas en JSON.
@@ -102,19 +102,19 @@ app.post('/api/sync-bank-emails', async (req, res) => {
           Email:
           ${decodedBody.substring(0, 8000)} 
         `,
-        config: { 
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        date: { type: Type.STRING },
-                        description: { type: Type.STRING },
-                        amount: { type: Type.NUMBER }
-                    }
-                }
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                date: { type: Type.STRING },
+                description: { type: Type.STRING },
+                amount: { type: Type.NUMBER }
+              }
             }
+          }
         }
       });
 

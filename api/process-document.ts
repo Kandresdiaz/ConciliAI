@@ -88,7 +88,7 @@ export default async function handler(req: Request) {
         const cleanBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.0-flash',
             contents: [{
                 parts: [
                     { text: "Escanea la imagen adjunta. Identifica específicamente el cuadro de SALDO ANTERIOR y SALDO ACTUAL. Luego extrae todos los movimientos de la tabla inferior." },

@@ -118,7 +118,12 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
       setPreCheckInfo(null);
       setPendingFile(null);
     } catch (e: any) {
-      setError(e.message || "Error al procesar documento");
+      console.error(e);
+      let msg = e.message || "Error al procesar documento";
+      if (msg.includes("API key not configured")) {
+        msg = "Falta la GEMINI_API_KEY en Vercel. Configúrala en Settings > Env Vars.";
+      }
+      setError(msg);
     } finally {
       setIsProcessing(false);
     }
