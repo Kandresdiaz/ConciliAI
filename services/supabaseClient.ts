@@ -2,12 +2,14 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Función segura para obtener variables de entorno sin causar ReferenceError
-const getEnvVar = (name: string): string => {
+// Función para obtener variables de entorno compatibles con Vite y Node
+const getEnvVar = (key: string): string => {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env[`VITE_${key}`] || import.meta.env[key] || '';
+  }
   try {
-    // Intentamos acceder a través de globalThis para máxima compatibilidad
-    const process = (globalThis as any).process;
-    return process?.env?.[name] || '';
-  } catch (e) {
+    return process.env[key] || process.env[`VITE_${key}`] || '';
+  } catch {
     return '';
   }
 };
@@ -17,7 +19,6 @@ const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
 
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-// Exportamos el cliente instanciado o null si no hay configuración válida
-export const supabase = isSupabaseConfigured 
+export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
