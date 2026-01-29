@@ -3,12 +3,11 @@ import { X, Loader2, Upload, FileSpreadsheet, CreditCard, AlertCircle, Mail, Spa
 import { parseBankStatementDocument } from '../services/geminiService';
 import { Transaction, TransactionSource, AccountSummary, ImportBatch, UserTier } from '../types';
 import * as pdfjsLib from 'pdfjs-dist';
-// @ts-ignore
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+  // Use local worker from public folder to avoid bundling issues
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 }
 
 interface Props {
@@ -48,9 +47,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
       const arrayBuffer = await file.arrayBuffer();
       // Use standard font loading
       const pdf = await pdfjsLib.getDocument({
-        data: arrayBuffer,
-        cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
-        cMapPacked: true,
+        data: arrayBuffer
       }).promise;
       return pdf.numPages;
     } catch (err: any) {
