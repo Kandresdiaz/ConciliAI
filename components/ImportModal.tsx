@@ -6,7 +6,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  // Use unpkg which is often more reliable for specific versions
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 }
 
 interface Props {
@@ -44,11 +45,17 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose, onImport, active
   const countPDFPages = async (file: File): Promise<number> => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      // Use standard font loading
+      const pdf = await pdfjsLib.getDocument({
+        data: arrayBuffer,
+        cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
+        cMapPacked: true,
+      }).promise;
       return pdf.numPages;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error counting PDF pages:', err);
-      throw new Error('No se pudo leer el PDF');
+      // EXPOSE THE REAL ERROR
+      throw new Error(`Error PDF: ${err.message || err.name || 'Desconocido'}`);
     }
   };
 
