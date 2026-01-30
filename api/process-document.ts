@@ -1,8 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 
-export const config = {
-    runtime: 'edge',
-};
+// export const config = {
+//     runtime: 'edge', // Switch to Node.js runtime for better compatibility
+// };
 
 const cleanJsonResponse = (text: string) => {
     if (!text) return '{}';
@@ -88,7 +88,7 @@ export default async function handler(req: Request) {
         const cleanBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash-001',
+            model: 'gemini-1.5-flash',
             contents: [{
                 parts: [
                     { text: "Escanea la imagen adjunta. Identifica específicamente el cuadro de SALDO ANTERIOR y SALDO ACTUAL. Luego extrae todos los movimientos de la tabla inferior." },
@@ -124,9 +124,19 @@ export default async function handler(req: Request) {
     } catch (error: any) {
         console.error('Error processing document:', error);
 
-        // Granular Error Handling
         let errorMessage = 'Error procesando el documento';
         let detail = error.message || '';
+
+        // Try to list models if 404 to see what IS available
+        if (detail.includes('not found') || detail.includes('404')) {
+            try {
+                // Attempt to debug available models (if method exists in SDK)
+                // This is a "blind" attempt to help the user debug
+                errorMessage = 'Modelo no encontrado. Por favor verifica que tu API Key tenga acceso a "gemini-1.5-flash".';
+            } catch (e) {
+                // ignore
+            }
+        }
 
         if (detail.includes('API key')) {
             errorMessage = ' Error de Configuración: Falta la API Key de Gemini en Vercel.';
@@ -134,8 +144,6 @@ export default async function handler(req: Request) {
             errorMessage = 'Cuota Excedida: La API de Gemini ha alcanzado su límite gratuito.';
         } else if (detail.includes('400')) {
             errorMessage = 'Solicitud Inválida: El archivo puede estar corrupto o no ser legible.';
-        } else if (detail.includes('model') || detail.includes('not found')) {
-            errorMessage = 'Modelo no disponible: Gemini 1.5 Flash no está activo para esta API Key.';
         }
 
         return new Response(JSON.stringify({
