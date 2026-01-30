@@ -3,11 +3,12 @@ import { X, Loader2, Upload, FileSpreadsheet, CreditCard, AlertCircle, Mail, Spa
 import { parseBankStatementDocument } from '../services/geminiService';
 import { Transaction, TransactionSource, AccountSummary, ImportBatch, UserTier } from '../types';
 import * as pdfjsLib from 'pdfjs-dist';
+// @ts-ignore
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Configure PDF.js worker
 if (typeof window !== 'undefined') {
-  // Use local worker from public folder to avoid bundling issues
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 }
 
 interface Props {
