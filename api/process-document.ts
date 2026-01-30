@@ -88,7 +88,7 @@ export default async function handler(req: Request) {
         const cleanBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-1.5-flash',
             contents: [{
                 parts: [
                     { text: "Escanea la imagen adjunta. Identifica específicamente el cuadro de SALDO ANTERIOR y SALDO ACTUAL. Luego extrae todos los movimientos de la tabla inferior." },
@@ -123,9 +123,24 @@ export default async function handler(req: Request) {
 
     } catch (error: any) {
         console.error('Error processing document:', error);
+
+        // Granular Error Handling
+        let errorMessage = 'Error procesando el documento';
+        let detail = error.message || '';
+
+        if (detail.includes('API key')) {
+            errorMessage = ' Error de Configuración: Falta la API Key de Gemini en Vercel.';
+        } else if (detail.includes('429') || detail.includes('Quota')) {
+            errorMessage = 'Cuota Excedida: La API de Gemini ha alcanzado su límite gratuito.';
+        } else if (detail.includes('400')) {
+            errorMessage = 'Solicitud Inválida: El archivo puede estar corrupto o no ser legible.';
+        } else if (detail.includes('model') || detail.includes('not found')) {
+            errorMessage = 'Modelo no disponible: Gemini 1.5 Flash no está activo para esta API Key.';
+        }
+
         return new Response(JSON.stringify({
-            error: 'Error procesando el documento',
-            message: error.message
+            error: errorMessage,
+            detail: detail
         }), {
             status: 500,
             headers: {

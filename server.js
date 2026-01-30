@@ -93,7 +93,7 @@ app.post('/api/sync-bank-emails', async (req, res) => {
       // Fix: Create GoogleGenAI instance right before the call as per best practices
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const aiResponse = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-1.5-flash',
         contents: `
           Analiza este correo electrónico.
           Si contiene transacciones financieras (compras, transferencias, pagos), extraelas en JSON.

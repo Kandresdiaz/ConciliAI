@@ -20,7 +20,9 @@ export const parseBankStatementDocument = async (base64Full: string, mimeType: s
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Error procesando el documento');
+      // Concatenate main error and detail for full context
+      const fullMessage = errorData.detail ? `${errorData.error}: ${errorData.detail}` : (errorData.error || 'Error procesando el documento');
+      throw new Error(fullMessage);
     }
 
     const result = await response.json();
