@@ -1,3 +1,4 @@
+// Force redeploy to refresh environment variables - v2
 import { GoogleGenAI } from '@google/genai';
 
 export const config = {
