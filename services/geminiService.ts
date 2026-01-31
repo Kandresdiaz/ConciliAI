@@ -24,7 +24,12 @@ export const parseBankStatementDocument = async (base64Full: string, mimeType: s
     if (!response.ok) {
       if (isJson) {
         const errorData = await response.json();
-        const fullMessage = errorData.detail ? `${errorData.error}: ${errorData.detail}` : (errorData.error || 'Error procesando el documento');
+        let fullMessage = errorData.detail ? `${errorData.error}: ${errorData.detail}` : (errorData.error || 'Error procesando el documento');
+
+        if (errorData.debug) {
+          fullMessage += ` | Debug: ${JSON.stringify(errorData.debug)}`;
+        }
+
         throw new Error(fullMessage);
       } else {
         const text = await response.text();
