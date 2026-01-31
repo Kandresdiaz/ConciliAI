@@ -18,11 +18,23 @@ export const parseBankStatementDocument = async (base64Full: string, mimeType: s
       })
     });
 
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType && contentType.includes('application/json');
+
     if (!response.ok) {
-      const errorData = await response.json();
-      // Concatenate main error and detail for full context
-      const fullMessage = errorData.detail ? `${errorData.error}: ${errorData.detail}` : (errorData.error || 'Error procesando el documento');
-      throw new Error(fullMessage);
+      if (isJson) {
+        const errorData = await response.json();
+        const fullMessage = errorData.detail ? `${errorData.error}: ${errorData.detail}` : (errorData.error || 'Error procesando el documento');
+        throw new Error(fullMessage);
+      } else {
+        const text = await response.text();
+        console.error("Non-JSON error response:", text.substring(0, 200));
+        throw new Error(`Error del servidor (${response.status}). Por favor, intenta de nuevo más tarde.`);
+      }
+    }
+
+    if (!isJson) {
+      throw new Error("El servidor no devolvió una respuesta válida (se esperaba JSON).");
     }
 
     const result = await response.json();

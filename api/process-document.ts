@@ -1,8 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 
-// export const config = {
-//     runtime: 'edge', // Switch to Node.js runtime for better compatibility
-// };
+export const config = {
+    runtime: 'edge',
+};
 
 const cleanJsonResponse = (text: string) => {
     if (!text) return '{}';
