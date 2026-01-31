@@ -88,7 +88,7 @@ export default async function handler(req: Request) {
         const cleanBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-1.5-flash',
             contents: [{
                 parts: [
                     { text: "Escanea la imagen adjunta. Identifica específicamente el cuadro de SALDO ANTERIOR y SALDO ACTUAL. Luego extrae todos los movimientos de la tabla inferior." },
@@ -124,21 +124,15 @@ export default async function handler(req: Request) {
     } catch (error: any) {
         console.error('Error processing document:', error);
 
+        const apiKey = process.env.GEMINI_API_KEY || '';
+        const maskedKey = apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : 'NO_KEY';
+
         let errorMessage = 'Error procesando el documento';
         let detail = error.message || '';
 
-        // Try to list models if 404 to see what IS available
         if (detail.includes('not found') || detail.includes('404')) {
-            try {
-                // Attempt to debug available models (if method exists in SDK)
-                // This is a "blind" attempt to help the user debug
-                errorMessage = 'Modelo no encontrado. Por favor verifica que tu API Key tenga acceso a "gemini-1.5-flash".';
-            } catch (e) {
-                // ignore
-            }
-        }
-
-        if (detail.includes('API key')) {
+            errorMessage = 'Modelo no encontrado. Por favor verifica que tu API Key tenga acceso a "gemini-1.5-flash".';
+        } else if (detail.includes('API key')) {
             errorMessage = ' Error de Configuración: Falta la API Key de Gemini en Vercel.';
         } else if (detail.includes('429') || detail.includes('Quota')) {
             errorMessage = 'Cuota Excedida: La API de Gemini ha alcanzado su límite gratuito.';
@@ -148,7 +142,11 @@ export default async function handler(req: Request) {
 
         return new Response(JSON.stringify({
             error: errorMessage,
-            detail: detail
+            detail: detail,
+            debug: {
+                key: maskedKey,
+                model: 'gemini-1.5-flash'
+            }
         }), {
             status: 500,
             headers: {
